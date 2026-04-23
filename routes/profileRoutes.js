@@ -52,8 +52,8 @@ router.get("/profile", auth, async (req, res) => {
     });
 
   } catch (err) {
-    console.log("PROFILE ERROR:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.log("PROFILE ERROR FULL:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -65,11 +65,11 @@ router.put("/profile", auth, upload.single("image"), async (req, res) => {
     console.log("FILE:", req.file);
     console.log("USER:", req.user);
 
-    const { name, phone } = req.body;
-
     if (!req.user) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
+
+    const { name, phone } = req.body;
 
     const user = await User.findOne({ email: req.user.email });
 
@@ -77,11 +77,9 @@ router.put("/profile", auth, upload.single("image"), async (req, res) => {
       return res.json({ success: false, message: "User not found" });
     }
 
-    // update fields
     if (name) user.name = name;
     if (phone) user.phone = phone;
 
-    // update image
     if (req.file) {
       user.image = req.file.filename;
     }
@@ -97,8 +95,8 @@ router.put("/profile", auth, upload.single("image"), async (req, res) => {
     });
 
   } catch (err) {
-    console.log("UPDATE ERROR:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.log("UPDATE ERROR FULL:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
