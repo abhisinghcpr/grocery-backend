@@ -6,14 +6,14 @@ const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 
-// create uploads folder automatically
+// ================== CREATE UPLOADS FOLDER ==================
 const uploadDir = path.join(__dirname, "../uploads");
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// multer config
+// ================== MULTER CONFIG ==================
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadDir);
@@ -25,7 +25,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// base URL
+// ================== BASE URL ==================
 const baseUrl = process.env.BASE_URL || "http://localhost:3000";
 
 
@@ -41,7 +41,10 @@ router.get("/profile", auth, async (req, res) => {
     res.json({
       success: true,
       user: {
-        ...user._doc,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
         image_url: user.image
           ? `${baseUrl}/uploads/${user.image}`
           : null
@@ -58,7 +61,15 @@ router.get("/profile", auth, async (req, res) => {
 // ================== PROFILE UPDATE ==================
 router.put("/profile", auth, upload.single("image"), async (req, res) => {
   try {
+    console.log("BODY:", req.body);
+    console.log("FILE:", req.file);
+    console.log("USER:", req.user);
+
     const { name, phone } = req.body;
+
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
 
     const user = await User.findOne({ email: req.user.email });
 
@@ -66,9 +77,11 @@ router.put("/profile", auth, upload.single("image"), async (req, res) => {
       return res.json({ success: false, message: "User not found" });
     }
 
+    // update fields
     if (name) user.name = name;
     if (phone) user.phone = phone;
 
+    // update image
     if (req.file) {
       user.image = req.file.filename;
     }
