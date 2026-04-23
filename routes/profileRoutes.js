@@ -4,6 +4,7 @@ const User = require("../models/User");
 const auth = require("../middlewares/authMiddleware");
 const multer = require("multer");
 
+// multer config
 const storage = multer.diskStorage({
   destination: "uploads/",
   filename: (req, file, cb) => {
@@ -13,43 +14,70 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// PROFILE VIEW
-router.get("/profile", auth, async (req, res) => {
-  const user = await User.findOne({ email: req.user.email });
+// base URL (important for live + local)
+const baseUrl = process.env.BASE_URL || "http://localhost:3000";
 
-  res.json({
-    success: true,
-    user: {
-      ...user._doc,
-    image_url: user.image
-  ? `${process.env.BASE_URL}/uploads/${user.image}`
-  : null
+
+// ================== PROFILE VIEW ==================
+router.get("/profile", auth, async (req, res) => {
+  try {
+    const user = await User.findOne({ email: req.user.email });
+
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
     }
-  });
+
+    res.json({
+      success: true,
+      user: {
+        ...user._doc,
+        image_url: user.image
+          ? `${baseUrl}/uploads/${user.image}`
+          : null
+      }
+    });
+
+  } catch (err) {
+    console.log("PROFILE ERROR:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
 });
 
-// UPDATE
+
+// ================== PROFILE UPDATE ==================
 router.put("/profile", auth, upload.single("image"), async (req, res) => {
-  const { name, phone } = req.body;
+  try {
+    const { name, phone } = req.body;
 
-  const user = await User.findOne({ email: req.user.email });
+    const user = await User.findOne({ email: req.user.email });
 
-  if (req.file) {
-    user.image = req.file.filename;
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    // update fields
+    if (name) user.name = name;
+    if (phone) user.phone = phone;
+
+    // update image
+    if (req.file) {
+      user.image = req.file.filename;
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Profile updated",
+      image_url: user.image
+        ? `${baseUrl}/uploads/${user.image}`
+        : null
+    });
+
+  } catch (err) {
+    console.log("UPDATE ERROR:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
-
-  user.name = name;
-  user.phone = phone;
-
-  await user.save();
-
-  res.json({
-    success: true,
-    message: "Profile updated",
-    image_url: image
-  ? `${process.env.BASE_URL}/uploads/${image}`
-  : null
-  });
 });
 
 module.exports = router;
