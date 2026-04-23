@@ -3,18 +3,29 @@ const router = express.Router();
 const User = require("../models/User");
 const auth = require("../middlewares/authMiddleware");
 const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
+
+// create uploads folder automatically
+const uploadDir = path.join(__dirname, "../uploads");
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 // multer config
 const storage = multer.diskStorage({
-  destination: "uploads/",
-  filename: (req, file, cb) => {
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
     cb(null, Date.now() + "-" + file.originalname);
   }
 });
 
 const upload = multer({ storage });
 
-// base URL (important for live + local)
+// base URL
 const baseUrl = process.env.BASE_URL || "http://localhost:3000";
 
 
@@ -55,11 +66,9 @@ router.put("/profile", auth, upload.single("image"), async (req, res) => {
       return res.json({ success: false, message: "User not found" });
     }
 
-    // update fields
     if (name) user.name = name;
     if (phone) user.phone = phone;
 
-    // update image
     if (req.file) {
       user.image = req.file.filename;
     }
