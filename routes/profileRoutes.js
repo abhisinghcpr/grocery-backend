@@ -1,10 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../db");
+const User = require("../models/User");
 const auth = require("../middlewares/authMiddleware");
 const multer = require("multer");
 
-// image upload
 const storage = multer.diskStorage({
   destination: "uploads/",
   filename: (req, file, cb) => {
@@ -15,72 +14,42 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // PROFILE VIEW
-router.get("/profile", auth, (req, res) => {
-  const email = req.user.email;
+router.get("/profile", auth, async (req, res) => {
+  const user = await User.findOne({ email: req.user.email });
 
-  db.query(
-    "SELECT * FROM users WHERE email = ?",
-    [email],
-    (err, result) => {
-      if (result.length === 0) {
-        return res.json({ success: false });
-      }
-
-      const user = result[0];
-
-      res.json({
-        success: true,
-        user: {
-          ...user,
-          image_url: user.image
-            ? `http://localhost:3000/uploads/${user.image}`
-            : null
-        }
-      });
+  res.json({
+    success: true,
+    user: {
+      ...user._doc,
+    image_url: user.image
+  ? `${process.env.BASE_URL}/uploads/${user.image}`
+  : null
     }
-  );
+  });
 });
 
-// PROFILE UPDATE
-router.put("/profile", auth, upload.single("image"), (req, res) => {
-  const email = req.user.email;
+// UPDATE
+router.put("/profile", auth, upload.single("image"), async (req, res) => {
   const { name, phone } = req.body;
 
-  if (!name || !phone) {
-    return res.json({ success: false, message: "Name & Phone required" });
+  const user = await User.findOne({ email: req.user.email });
+
+  if (req.file) {
+    user.image = req.file.filename;
   }
 
-  db.query(
-    "SELECT * FROM users WHERE email = ?",
-    [email],
-    (err, result) => {
-      const user = result[0];
+  user.name = name;
+  user.phone = phone;
 
-      let image = user.image;
+  await user.save();
 
-      if (req.file) {
-        image = req.file.filename;
-      }
-
-      db.query(
-        "UPDATE users SET name = ?, phone = ?, image = ? WHERE email = ?",
-        [name, phone, image, email],
-        (err) => {
-          if (err) {
-            return res.json({ success: false, message: err.message });
-          }
-
-          res.json({
-            success: true,
-            message: "Profile updated",
-            image_url: image
-              ? `http://localhost:3000/uploads/${image}`
-              : null
-          });
-        }
-      );
-    }
-  );
+  res.json({
+    success: true,
+    message: "Profile updated",
+    image_url: image
+  ? `${process.env.BASE_URL}/uploads/${image}`
+  : null
+  });
 });
 
 module.exports = router;

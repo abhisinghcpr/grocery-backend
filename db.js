@@ -1,21 +1,13 @@
+const mongoose = require("mongoose");
 
-const mysql = require("mysql2");
-
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "root123", // अपना password
-  database: "grocery_db"
-});
-
-db.connect((err) => {
-  if (err) {
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("MongoDB Connected ✅");
+  } catch (err) {
     console.log("DB Error:", err);
-  } else {
-    console.log("MySQL Connected ✅");
+    process.exit(1);
   }
-});
-
-module.exports = db;
-
-
+};
+console.log("MONGO_URI:", process.env.MONGO_URI);
+module.exports = connectDB;
