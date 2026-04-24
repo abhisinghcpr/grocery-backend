@@ -32,7 +32,7 @@ const baseUrl = process.env.BASE_URL || "http://localhost:3000";
 // ================== PROFILE VIEW ==================
 router.get("/profile", auth, async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.user.email });
+    const user = await User.findById(req.user.id);
 
     if (!user) {
       return res.json({ success: false, message: "User not found" });
@@ -71,7 +71,7 @@ router.put("/profile", auth, upload.single("image"), async (req, res) => {
 
     const { name, phone } = req.body;
 
-    const user = await User.findOne({ email: req.user.email });
+    const user = await User.findById(req.user.id);
 
     if (!user) {
       return res.json({ success: false, message: "User not found" });

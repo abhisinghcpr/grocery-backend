@@ -20,9 +20,14 @@ router.post("/signup", async (req, res) => {
       password: hashedPassword
     });
 
-    const token = jwt.sign({ email }, SECRET_KEY, { expiresIn: "7d" });
+    const token = jwt.sign({ id: user._id }, SECRET_KEY, { expiresIn: "7d" });
 
-    res.json({ success: true, token, user });
+    // ❌ password हटाओ
+    const userData = user.toObject();
+    delete userData.password;
+
+    res.json({ success: true, token, user: userData });
+
   } catch (err) {
     res.json({ success: false, message: "User already exists" });
   }
@@ -44,9 +49,13 @@ router.post("/login", async (req, res) => {
     return res.json({ success: false, message: "Wrong password" });
   }
 
-  const token = jwt.sign({ email }, SECRET_KEY, { expiresIn: "7d" });
+  const token = jwt.sign({ id: user._id }, SECRET_KEY, { expiresIn: "7d" });
 
-  res.json({ success: true, token, user });
+  // ❌ password हटाओ
+  const userData = user.toObject();
+  delete userData.password;
+
+  res.json({ success: true, token, user: userData });
 });
 
 module.exports = router;
