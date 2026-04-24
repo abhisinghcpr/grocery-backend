@@ -157,5 +157,7 @@ router.get("/", auth, async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
-
+router.get("/check", (req, res) => {
+  res.send("Cart updated route working");
+});
 module.exports = router;
