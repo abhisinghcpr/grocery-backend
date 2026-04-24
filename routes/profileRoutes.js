@@ -30,8 +30,12 @@ const baseUrl = process.env.BASE_URL || "http://localhost:3000";
 
 
 // ================== PROFILE VIEW ==================
+const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+const cleanBaseUrl = baseUrl.replace(/\/$/, "");
+
 router.get("/profile", auth, async (req, res) => {
   try {
+
     const user = await User.findById(req.user.id);
 
     if (!user) {
@@ -46,7 +50,7 @@ router.get("/profile", auth, async (req, res) => {
         email: user.email,
         phone: user.phone,
         image_url: user.image
-          ? `${baseUrl}/uploads/${user.image}`
+          ? `${cleanBaseUrl}/uploads/${user.image}`
           : null
       }
     });

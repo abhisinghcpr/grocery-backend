@@ -38,7 +38,7 @@ router.post("/add", auth, upload.single("image"), async (req, res) => {
       category: {
         ...category._doc,
         image_url: category.image
-          ? `${baseUrl}/uploads/${category.image}`
+          ?`${baseUrl.replace(/\/$/, "")}/uploads/${category.image}`
           : null
       }
     });

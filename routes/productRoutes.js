@@ -47,9 +47,9 @@ router.post("/add", auth, upload.single("image"), async (req, res) => {
       message: "Product added",
       product: {
         ...product._doc,
-        image_url: product.image
-          ? `${baseUrl}/uploads/${product.image}`
-          : null
+       image_url: product.image
+  ? `${cleanBaseUrl}/uploads/${product.image}`
+  : null
       }
     });
 
@@ -119,8 +119,8 @@ router.get("/:id", async (req, res) => {
         description: product.description,
         category: product.category?.name,
         image_url: product.image
-          ? `${baseUrl}/uploads/${product.image}`
-          : null,
+  ? `${cleanBaseUrl}/uploads/${product.image}`
+  : null,
         createdAt: product.createdAt
       }
     });
@@ -168,9 +168,9 @@ router.put("/update/:id", auth, upload.single("image"), async (req, res) => {
       message: "Product updated",
       product: {
         ...product._doc,
-        image_url: product.image
-          ? `${baseUrl}/uploads/${product.image}`
-          : null
+       image_url: product.image
+  ? `${cleanBaseUrl}/uploads/${product.image}`
+  : null
       }
     });
 
@@ -202,5 +202,6 @@ router.delete("/delete/:id", auth, async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
-
+const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+const cleanBaseUrl = baseUrl.replace(/\/$/, "");
 module.exports = router;
