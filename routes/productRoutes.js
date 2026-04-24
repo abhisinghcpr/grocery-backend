@@ -16,6 +16,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+const cleanBaseUrl = baseUrl.replace(/\/$/, "");
 
 
 // ================= ADD PRODUCT =================
@@ -202,6 +203,4 @@ router.delete("/delete/:id", auth, async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
-const baseUrl = process.env.BASE_URL || "http://localhost:3000";
-const cleanBaseUrl = baseUrl.replace(/\/$/, "");
 module.exports = router;

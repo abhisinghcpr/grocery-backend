@@ -26,7 +26,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ================== BASE URL ==================
-const baseUrl = process.env.BASE_URL || "http://localhost:3000";
 
 
 // ================== PROFILE VIEW ==================
