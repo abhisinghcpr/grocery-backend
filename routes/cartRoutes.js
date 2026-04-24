@@ -5,34 +5,36 @@ const Product = require("../models/Product");
 const auth = require("../middlewares/authMiddleware");
 
 const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+const cleanBaseUrl = baseUrl.replace(/\/$/, "");
 
 
 // ================= ADD TO CART =================
 router.post("/add", auth, async (req, res) => {
   try {
-    const { productId, quantity } = req.body;
+    const { productId } = req.body;
 
     const product = await Product.findById(productId);
-
     if (!product) {
       return res.json({ success: false, message: "Product not found" });
     }
 
-    let cartItem = await Cart.findOne({
-      user: req.user.id,
-      product: productId
-    });
+    let cart = await Cart.findOne({ user: req.user.id });
 
-    if (cartItem) {
-      cartItem.quantity += quantity ? Number(quantity) : 1;
-      await cartItem.save();
-    } else {
-      cartItem = await Cart.create({
-        user: req.user.id,
-        product: productId,
-        quantity: quantity ? Number(quantity) : 1
-      });
+    if (!cart) {
+      cart = await Cart.create({ user: req.user.id, items: [] });
     }
+
+    const index = cart.items.findIndex(
+      item => item.product.toString() === productId
+    );
+
+    if (index > -1) {
+      cart.items[index].quantity += 1;
+    } else {
+      cart.items.push({ product: productId, quantity: 1 });
+    }
+
+    await cart.save();
 
     res.json({ success: true, message: "Added to cart" });
 
@@ -43,75 +45,62 @@ router.post("/add", auth, async (req, res) => {
 });
 
 
-// ================= VIEW CART =================
-router.get("/", auth, async (req, res) => {
+// ================= REMOVE FROM CART =================
+router.post("/remove", auth, async (req, res) => {
   try {
-    const cart = await Cart.find({ user: req.user.id })
-      .populate("product");
+    const { productId } = req.body;
 
-    let grandTotal = 0;
+    const cart = await Cart.findOne({ user: req.user.id });
 
-    const data = cart.map(item => {
-      const price = item.product.discountPrice || item.product.price;
-      const total = price * item.quantity;
+    if (!cart) {
+      return res.json({ success: false, message: "Cart empty" });
+    }
 
-      grandTotal += total;
+    cart.items = cart.items.filter(
+      item => item.product.toString() !== productId
+    );
 
-      return {
-        _id: item._id,
-        productId: item.product._id,
-        name: item.product.name,
-        price: item.product.price,
-        discountPrice: item.product.discountPrice,
-        quantity: item.quantity,
-        total,
-        image_url: item.product.image
-          ? `${baseUrl}/uploads/${item.product.image}`
-          : null
-      };
-    });
+    await cart.save();
 
-    res.json({
-      success: true,
-      cart: data,
-      grandTotal // 🔥 important
-    });
+    res.json({ success: true, message: "Removed from cart" });
 
   } catch (err) {
-    console.log("CART GET ERROR:", err);
+    console.log("CART REMOVE ERROR:", err);
     res.status(500).json({ success: false });
   }
 });
 
 
 // ================= UPDATE QUANTITY =================
-router.put("/update/:id", auth, async (req, res) => {
+router.post("/update", auth, async (req, res) => {
   try {
-    const { quantity } = req.body;
+    const { productId, quantity } = req.body;
 
-    const cartItem = await Cart.findById(req.params.id);
+    const cart = await Cart.findOne({ user: req.user.id });
 
-    if (!cartItem) {
+    if (!cart) {
+      return res.json({ success: false, message: "Cart not found" });
+    }
+
+    const item = cart.items.find(
+      i => i.product.toString() === productId
+    );
+
+    if (!item) {
       return res.json({ success: false, message: "Item not found" });
     }
 
-    // 🔐 user check
-    if (cartItem.user.toString() !== req.user.id) {
-      return res.json({ success: false, message: "Unauthorized" });
-    }
-
     if (quantity <= 0) {
-      await Cart.findByIdAndDelete(req.params.id);
-      return res.json({ success: true, message: "Item removed" });
+      cart.items = cart.items.filter(
+        i => i.product.toString() !== productId
+      );
+    } else {
+      item.quantity = Number(quantity);
     }
 
-    cartItem.quantity = Number(quantity);
-    await cartItem.save();
+    await cart.save();
 
-    res.json({
-      success: true,
-      message: "Cart updated"
-    });
+    res.json({ success: true, message: "Cart updated" });
 
   } catch (err) {
     console.log("CART UPDATE ERROR:", err);
@@ -120,29 +109,51 @@ router.put("/update/:id", auth, async (req, res) => {
 });
 
 
-// ================= REMOVE ITEM =================
-router.delete("/remove/:id", auth, async (req, res) => {
+// ================= VIEW CART =================
+router.get("/", auth, async (req, res) => {
   try {
-    const cartItem = await Cart.findById(req.params.id);
+    const cart = await Cart.findOne({ user: req.user.id })
+      .populate("items.product");
 
-    if (!cartItem) {
-      return res.json({ success: false, message: "Item not found" });
+    if (!cart || cart.items.length === 0) {
+      return res.json({
+        success: true,
+        cart: [],
+        grandTotal: 0
+      });
     }
 
-    // 🔐 user check
-    if (cartItem.user.toString() !== req.user.id) {
-      return res.json({ success: false, message: "Unauthorized" });
-    }
+    let grandTotal = 0;
 
-    await Cart.findByIdAndDelete(req.params.id);
+    const data = cart.items.map(item => {
+      const p = item.product;
+
+      const price = p.discountPrice || p.price;
+      const total = price * item.quantity;
+
+      grandTotal += total;
+
+      return {
+        productId: p._id,
+        name: p.name,
+        price: p.price,
+        discountPrice: p.discountPrice,
+        quantity: item.quantity,
+        total,
+        image_url: p.image
+          ? `${cleanBaseUrl}/uploads/${p.image}`
+          : null
+      };
+    });
 
     res.json({
       success: true,
-      message: "Item removed"
+      cart: data,
+      grandTotal
     });
 
   } catch (err) {
-    console.log("CART DELETE ERROR:", err);
+    console.log("CART GET ERROR:", err);
     res.status(500).json({ success: false });
   }
 });
