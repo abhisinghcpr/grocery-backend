@@ -20,6 +20,8 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/category", require("./routes/categoryRoutes"));
 app.use("/api/product", require("./routes/productRoutes"));
 app.use("/api/cart", require("./routes/cartRoutes"));
+app.use("/api/address", require("./routes/addressRoutes"));
+app.use("/api/order", require("./routes/orderRoutes"));
 
 app.get("/", (req, res) => {
   res.send("API Running...");

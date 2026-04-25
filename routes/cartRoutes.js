@@ -119,19 +119,30 @@ router.get("/", auth, async (req, res) => {
       return res.json({
         success: true,
         cart: [],
-        grandTotal: 0
+        bill: {
+          subtotal: 0,
+          discount: 0,
+          deliveryFee: 0,
+          total: 0
+        }
       });
     }
 
-    let grandTotal = 0;
+    let subtotal = 0;
+    let discount = 0;
 
     const data = cart.items.map(item => {
       const p = item.product;
 
-      const price = p.discountPrice || p.price;
-      const total = price * item.quantity;
+      const original = p.price;
+      const discounted = p.discountPrice || p.price;
 
-      grandTotal += total;
+      const itemSubtotal = original * item.quantity;
+      const itemDiscount = (original - discounted) * item.quantity;
+      const itemTotal = discounted * item.quantity;
+
+      subtotal += itemSubtotal;
+      discount += itemDiscount;
 
       return {
         productId: p._id,
@@ -139,17 +150,27 @@ router.get("/", auth, async (req, res) => {
         price: p.price,
         discountPrice: p.discountPrice,
         quantity: item.quantity,
-        total,
+        total: itemTotal,
         image_url: p.image
           ? `${cleanBaseUrl}/uploads/${p.image}`
           : null
       };
     });
 
+    // 🔥 Delivery logic
+    const deliveryFee = subtotal > 200 ? 0 : 20;
+
+    const finalTotal = subtotal - discount + deliveryFee;
+
     res.json({
       success: true,
       cart: data,
-      grandTotal
+      bill: {
+        subtotal,
+        discount,
+        deliveryFee,
+        total: finalTotal
+      }
     });
 
   } catch (err) {
