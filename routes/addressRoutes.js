@@ -87,5 +87,6 @@ router.delete("/delete/:id", auth, async (req, res) => {
     message: "Deleted"
   });
 });
-
+// test change
+console.log("ADDRESS ROUTE LOADED");
 module.exports = router;
