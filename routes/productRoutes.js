@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
+const mongoose = require("mongoose");
 
-// 🔥 ADD THIS
+// 🔥 CLOUDINARY
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("../utils/cloudinary");
 
@@ -10,7 +11,7 @@ const Product = require("../models/Product");
 const Category = require("../models/Category");
 const auth = require("../middlewares/authMiddleware");
 
-// ================= CHANGE MULTER =================
+// ================= CLOUDINARY STORAGE =================
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -54,8 +55,6 @@ router.post("/add", auth, upload.single("image"), async (req, res) => {
       quantity: quantity ? Number(quantity) : 0,
       unit: unit || "g",
       category,
-
-      // 🔥 CHANGE HERE
       image: req.file ? req.file.path : null
     });
 
@@ -64,14 +63,12 @@ router.post("/add", auth, upload.single("image"), async (req, res) => {
       product: {
         ...product._doc,
         size: `${product.quantity}${product.unit}`,
-
-        // 🔥 CHANGE HERE
         image_url: product.image
       }
     });
 
   } catch (err) {
-    console.log(err);
+    console.log("ADD ERROR:", err);
     res.status(500).json({ success: false });
   }
 });
@@ -97,14 +94,10 @@ router.get("/", async (req, res) => {
       discountPrice: p.discountPrice,
       stock: p.stock,
       description: p.description,
-
       quantity: p.quantity || 0,
       unit: p.unit || "",
       size: `${p.quantity}${p.unit}`,
-
       category: p.category?.name,
-
-      // 🔥 CHANGE HERE
       image_url: p.image
     }));
 
@@ -114,19 +107,37 @@ router.get("/", async (req, res) => {
     });
 
   } catch (err) {
+    console.log("GET ALL ERROR:", err);
     res.status(500).json({ success: false });
   }
 });
 
 
-// ================= DETAILS =================
+// ================= DETAILS (FIXED 🔥) =================
 router.get("/:id", async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id)
+    const id = req.params.id;
+
+    console.log("DETAIL ID:", id);
+
+    // ✅ invalid id check
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.json({
+        success: false,
+        message: "Invalid product ID"
+      });
+    }
+
+    const product = await Product.findById(id)
       .populate("category", "name");
 
+    console.log("FOUND PRODUCT:", product);
+
     if (!product) {
-      return res.json({ success: false });
+      return res.json({
+        success: false,
+        message: "Product not found"
+      });
     }
 
     res.json({
@@ -138,20 +149,20 @@ router.get("/:id", async (req, res) => {
         discountPrice: product.discountPrice,
         stock: product.stock,
         description: product.description,
-
         quantity: product.quantity,
         unit: product.unit,
         size: `${product.quantity}${product.unit}`,
-
         category: product.category?.name,
-
-        // 🔥 CHANGE HERE
         image_url: product.image
       }
     });
 
   } catch (err) {
-    res.status(500).json({ success: false });
+    console.log("DETAIL ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 });
 
@@ -159,6 +170,12 @@ router.get("/:id", async (req, res) => {
 // ================= UPDATE =================
 router.put("/update/:id", auth, upload.single("image"), async (req, res) => {
   try {
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.json({ success: false });
+    }
+
     const {
       name,
       price,
@@ -170,12 +187,6 @@ router.put("/update/:id", auth, upload.single("image"), async (req, res) => {
       unit
     } = req.body;
 
-    const product = await Product.findById(req.params.id);
-
-    if (!product) {
-      return res.json({ success: false });
-    }
-
     if (name) product.name = name;
     if (price) product.price = Number(price);
     if (discountPrice) product.discountPrice = Number(discountPrice);
@@ -185,7 +196,6 @@ router.put("/update/:id", auth, upload.single("image"), async (req, res) => {
     if (unit) product.unit = unit;
     if (category) product.category = category;
 
-    // 🔥 CHANGE HERE
     if (req.file) {
       product.image = req.file.path;
     }
@@ -197,13 +207,12 @@ router.put("/update/:id", auth, upload.single("image"), async (req, res) => {
       product: {
         ...product._doc,
         size: `${product.quantity}${product.unit}`,
-
-        // 🔥 CHANGE HERE
         image_url: product.image
       }
     });
 
   } catch (err) {
+    console.log("UPDATE ERROR:", err);
     res.status(500).json({ success: false });
   }
 });
@@ -218,7 +227,7 @@ router.delete("/delete/:id", auth, async (req, res) => {
       success: true,
       message: "Deleted"
     });
-
+    
   } catch (err) {
     res.status(500).json({ success: false });
   }
