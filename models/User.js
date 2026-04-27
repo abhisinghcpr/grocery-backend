@@ -5,7 +5,14 @@ const userSchema = new mongoose.Schema({
   email: String,
   phone: String,
   password: String,
-  image: String
+  image: String,
+
+  role: {
+    type: String,
+    enum: ["customer", "seller"],
+    default: "customer"
+  }
+
 }, {
   versionKey: false  
 });

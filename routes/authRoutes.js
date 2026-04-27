@@ -8,7 +8,7 @@ const SECRET_KEY = process.env.JWT_SECRET;
 
 // SIGNUP
 router.post("/signup", async (req, res) => {
-  const { name, email, phone, password } = req.body;
+  const { name, email, phone, password, role } = req.body;
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -17,12 +17,16 @@ router.post("/signup", async (req, res) => {
       name,
       email,
       phone,
-      password: hashedPassword
+      password: hashedPassword,
+      role: role || "customer" // default
     });
 
-    const token = jwt.sign({ id: user._id }, SECRET_KEY, { expiresIn: "7d" });
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      SECRET_KEY,
+      { expiresIn: "7d" }
+    );
 
-    // ❌ password हटाओ
     const userData = user.toObject();
     delete userData.password;
 
@@ -49,9 +53,12 @@ router.post("/login", async (req, res) => {
     return res.json({ success: false, message: "Wrong password" });
   }
 
-  const token = jwt.sign({ id: user._id }, SECRET_KEY, { expiresIn: "7d" });
+  const token = jwt.sign(
+    { id: user._id, role: user.role },
+    SECRET_KEY,
+    { expiresIn: "7d" }
+  );
 
-  // ❌ password हटाओ
   const userData = user.toObject();
   delete userData.password;
 
