@@ -23,10 +23,15 @@ const productSchema = new mongoose.Schema({
   description: String,
 
   // 🔥 NEW
-  quantity: Number, // 400, 1
+  quantity: {
+    type: Number,
+    default: 0
+  },
+
   unit: {
     type: String,
-    enum: ["g", "kg", "ml", "L"]
+    enum: ["g", "kg", "ml", "L"],
+    default: "g"
   },
 
   category: {

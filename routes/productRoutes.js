@@ -5,14 +5,13 @@ const Product = require("../models/Product");
 const Category = require("../models/Category");
 const auth = require("../middlewares/authMiddleware");
 
-// multer config
+// multer
 const storage = multer.diskStorage({
   destination: "uploads/",
   filename: (req, file, cb) => {
     cb(null, Date.now() + "-" + file.originalname);
   }
 });
-
 const upload = multer({ storage });
 
 const baseUrl = process.env.BASE_URL || "http://localhost:3000";
@@ -46,10 +45,10 @@ router.post("/add", auth, upload.single("image"), async (req, res) => {
       name,
       price: Number(price),
       discountPrice: discountPrice ? Number(discountPrice) : null,
-      stock: Number(stock),
+      stock: stock ? Number(stock) : 0,
       description,
-      quantity: Number(quantity),
-      unit,
+      quantity: quantity ? Number(quantity) : 0,
+      unit: unit || "g",
       category,
       image: req.file ? req.file.filename : null
     });
@@ -58,6 +57,7 @@ router.post("/add", auth, upload.single("image"), async (req, res) => {
       success: true,
       product: {
         ...product._doc,
+        size: `${product.quantity}${product.unit}`,
         image_url: product.image
           ? `${cleanBaseUrl}/uploads/${product.image}`
           : null
@@ -71,7 +71,7 @@ router.post("/add", auth, upload.single("image"), async (req, res) => {
 });
 
 
-// ================= GET ALL PRODUCTS =================
+// ================= GET ALL =================
 router.get("/", async (req, res) => {
   try {
     const { category } = req.query;
@@ -92,9 +92,9 @@ router.get("/", async (req, res) => {
       stock: p.stock,
       description: p.description,
 
-      // 🔥 NEW
-      quantity: p.quantity,
-      unit: p.unit,
+      quantity: p.quantity || 0,
+      unit: p.unit || "",
+      size: `${p.quantity}${p.unit}`,
 
       category: p.category?.name,
       image_url: p.image
@@ -108,19 +108,19 @@ router.get("/", async (req, res) => {
     });
 
   } catch (err) {
-    console.log(err);
     res.status(500).json({ success: false });
   }
 });
 
-// ================= PRODUCT DETAILS =================
+
+// ================= DETAILS =================
 router.get("/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
       .populate("category", "name");
 
     if (!product) {
-      return res.json({ success: false, message: "Not found" });
+      return res.json({ success: false });
     }
 
     res.json({
@@ -133,9 +133,9 @@ router.get("/:id", async (req, res) => {
         stock: product.stock,
         description: product.description,
 
-        // 🔥 NEW
         quantity: product.quantity,
         unit: product.unit,
+        size: `${product.quantity}${product.unit}`,
 
         category: product.category?.name,
         image_url: product.image
@@ -150,7 +150,7 @@ router.get("/:id", async (req, res) => {
 });
 
 
-// ================= UPDATE PRODUCT =================
+// ================= UPDATE =================
 router.put("/update/:id", auth, upload.single("image"), async (req, res) => {
   try {
     const {
@@ -175,11 +175,8 @@ router.put("/update/:id", auth, upload.single("image"), async (req, res) => {
     if (discountPrice) product.discountPrice = Number(discountPrice);
     if (stock) product.stock = Number(stock);
     if (description) product.description = description;
-
-    // 🔥 NEW
     if (quantity) product.quantity = Number(quantity);
     if (unit) product.unit = unit;
-
     if (category) product.category = category;
 
     if (req.file) {
@@ -192,6 +189,7 @@ router.put("/update/:id", auth, upload.single("image"), async (req, res) => {
       success: true,
       product: {
         ...product._doc,
+        size: `${product.quantity}${product.unit}`,
         image_url: product.image
           ? `${cleanBaseUrl}/uploads/${product.image}`
           : null
@@ -204,25 +202,19 @@ router.put("/update/:id", auth, upload.single("image"), async (req, res) => {
 });
 
 
-// ================= DELETE PRODUCT =================
+// ================= DELETE =================
 router.delete("/delete/:id", auth, async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
-
-    if (!product) {
-      return res.json({ success: false, message: "Product not found" });
-    }
-
     await Product.findByIdAndDelete(req.params.id);
 
     res.json({
       success: true,
-      message: "Product deleted"
+      message: "Deleted"
     });
 
   } catch (err) {
-    console.log("PRODUCT DELETE ERROR:", err);
     res.status(500).json({ success: false });
   }
 });
+
 module.exports = router;
