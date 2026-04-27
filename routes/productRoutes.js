@@ -1,21 +1,25 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
+
+// 🔥 ADD THIS
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("../utils/cloudinary");
+
 const Product = require("../models/Product");
 const Category = require("../models/Category");
 const auth = require("../middlewares/authMiddleware");
 
-// multer
-const storage = multer.diskStorage({
-  destination: "uploads/",
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
+// ================= CHANGE MULTER =================
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "grocery/products",
+    allowed_formats: ["jpg", "png", "jpeg", "webp"]
   }
 });
-const upload = multer({ storage });
 
-const baseUrl = process.env.BASE_URL || "http://localhost:3000";
-const cleanBaseUrl = baseUrl.replace(/\/$/, "");
+const upload = multer({ storage });
 
 
 // ================= ADD PRODUCT =================
@@ -50,7 +54,9 @@ router.post("/add", auth, upload.single("image"), async (req, res) => {
       quantity: quantity ? Number(quantity) : 0,
       unit: unit || "g",
       category,
-      image: req.file ? req.file.filename : null
+
+      // 🔥 CHANGE HERE
+      image: req.file ? req.file.path : null
     });
 
     res.json({
@@ -58,9 +64,9 @@ router.post("/add", auth, upload.single("image"), async (req, res) => {
       product: {
         ...product._doc,
         size: `${product.quantity}${product.unit}`,
+
+        // 🔥 CHANGE HERE
         image_url: product.image
-          ? `${cleanBaseUrl}/uploads/${product.image}`
-          : null
       }
     });
 
@@ -97,9 +103,9 @@ router.get("/", async (req, res) => {
       size: `${p.quantity}${p.unit}`,
 
       category: p.category?.name,
+
+      // 🔥 CHANGE HERE
       image_url: p.image
-        ? `${cleanBaseUrl}/uploads/${p.image}`
-        : null
     }));
 
     res.json({
@@ -138,9 +144,9 @@ router.get("/:id", async (req, res) => {
         size: `${product.quantity}${product.unit}`,
 
         category: product.category?.name,
+
+        // 🔥 CHANGE HERE
         image_url: product.image
-          ? `${cleanBaseUrl}/uploads/${product.image}`
-          : null
       }
     });
 
@@ -179,8 +185,9 @@ router.put("/update/:id", auth, upload.single("image"), async (req, res) => {
     if (unit) product.unit = unit;
     if (category) product.category = category;
 
+    // 🔥 CHANGE HERE
     if (req.file) {
-      product.image = req.file.filename;
+      product.image = req.file.path;
     }
 
     await product.save();
@@ -190,9 +197,9 @@ router.put("/update/:id", auth, upload.single("image"), async (req, res) => {
       product: {
         ...product._doc,
         size: `${product.quantity}${product.unit}`,
+
+        // 🔥 CHANGE HERE
         image_url: product.image
-          ? `${cleanBaseUrl}/uploads/${product.image}`
-          : null
       }
     });
 

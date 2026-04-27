@@ -4,9 +4,6 @@ const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 const auth = require("../middlewares/authMiddleware");
 
-const baseUrl = process.env.BASE_URL || "http://localhost:3000";
-const cleanBaseUrl = baseUrl.replace(/\/$/, "");
-
 
 // ================= ADD TO CART =================
 router.post("/add", auth, async (req, res) => {
@@ -45,7 +42,7 @@ router.post("/add", auth, async (req, res) => {
 });
 
 
-// ================= REMOVE FROM CART =================
+// ================= REMOVE =================
 router.post("/remove", auth, async (req, res) => {
   try {
     const { productId } = req.body;
@@ -71,7 +68,7 @@ router.post("/remove", auth, async (req, res) => {
 });
 
 
-// ================= UPDATE QUANTITY =================
+// ================= UPDATE =================
 router.post("/update", auth, async (req, res) => {
   try {
     const { productId, quantity } = req.body;
@@ -151,15 +148,13 @@ router.get("/", auth, async (req, res) => {
         discountPrice: p.discountPrice,
         quantity: item.quantity,
         total: itemTotal,
+
+        // 🔥 FIX HERE (IMPORTANT)
         image_url: p.image
-          ? `${cleanBaseUrl}/uploads/${p.image}`
-          : null
       };
     });
 
-    // 🔥 Delivery logic
     const deliveryFee = subtotal > 200 ? 0 : 20;
-
     const finalTotal = subtotal - discount + deliveryFee;
 
     res.json({
@@ -178,7 +173,11 @@ router.get("/", auth, async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
+
+
+// ================= TEST =================
 router.get("/check", (req, res) => {
   res.send("Cart updated route working");
 });
+
 module.exports = router;

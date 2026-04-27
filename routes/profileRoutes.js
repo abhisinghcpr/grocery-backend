@@ -2,36 +2,27 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const auth = require("../middlewares/authMiddleware");
+
 const multer = require("multer");
-const fs = require("fs");
-const path = require("path");
 
-// ================== CREATE UPLOADS FOLDER ==================
-const uploadDir = path.join(__dirname, "../uploads");
+// 🔥 ADD THIS
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("../utils/cloudinary");
 
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
 
-// ================== MULTER CONFIG ==================
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
+// ================= CLOUDINARY STORAGE =================
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "grocery/profile",
+    allowed_formats: ["jpg", "png", "jpeg", "webp"]
   }
 });
 
 const upload = multer({ storage });
 
-// ================== BASE URL ==================
 
-
-// ================== PROFILE VIEW ==================
-const baseUrl = process.env.BASE_URL || "http://localhost:3000";
-const cleanBaseUrl = baseUrl.replace(/\/$/, "");
-
+// ================= PROFILE VIEW =================
 router.get("/profile", auth, async (req, res) => {
   try {
 
@@ -48,30 +39,22 @@ router.get("/profile", auth, async (req, res) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
-        image_url: user.image
-          ? `${cleanBaseUrl}/uploads/${user.image}`
-          : null
+
+        // 🔥 CHANGE HERE
+        image_url: user.image || null
       }
     });
 
   } catch (err) {
     console.log("PROFILE ERROR FULL:", err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false });
   }
 });
 
 
-// ================== PROFILE UPDATE ==================
+// ================= PROFILE UPDATE =================
 router.put("/profile", auth, upload.single("image"), async (req, res) => {
   try {
-    console.log("BODY:", req.body);
-    console.log("FILE:", req.file);
-    console.log("USER:", req.user);
-
-    if (!req.user) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
-
     const { name, phone } = req.body;
 
     const user = await User.findById(req.user.id);
@@ -83,8 +66,9 @@ router.put("/profile", auth, upload.single("image"), async (req, res) => {
     if (name) user.name = name;
     if (phone) user.phone = phone;
 
+    // 🔥 CHANGE HERE
     if (req.file) {
-      user.image = req.file.filename;
+      user.image = req.file.path; // cloudinary URL
     }
 
     await user.save();
@@ -92,14 +76,14 @@ router.put("/profile", auth, upload.single("image"), async (req, res) => {
     res.json({
       success: true,
       message: "Profile updated",
+
+      // 🔥 CHANGE HERE
       image_url: user.image
-        ? `${baseUrl}/uploads/${user.image}`
-        : null
     });
 
   } catch (err) {
     console.log("UPDATE ERROR FULL:", err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false });
   }
 });
 
