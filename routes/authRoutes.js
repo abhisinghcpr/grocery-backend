@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 
 const SECRET_KEY = process.env.JWT_SECRET;
 
+
 // ================= SIGNUP =================
 router.post("/signup", async (req, res) => {
   try {
@@ -18,7 +19,6 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    // check existing
     const exists = await User.findOne({ email });
     if (exists) {
       return res.json({
@@ -34,7 +34,7 @@ router.post("/signup", async (req, res) => {
       email,
       phone,
       password: hashedPassword,
-      role: role || "customer"
+      role: role || "customer" // 🔥 direct role
     });
 
     const token = jwt.sign(
@@ -53,7 +53,6 @@ router.post("/signup", async (req, res) => {
     });
 
   } catch (err) {
-    console.log(err);
     res.status(500).json({ success: false });
   }
 });
@@ -70,11 +69,11 @@ router.post("/login", async (req, res) => {
       return res.json({ success: false, message: "User not found" });
     }
 
-    // 🔥 ROLE CHECK
+    // 🔥 ROLE CHECK (simple)
     if (role && user.role !== role) {
       return res.json({
         success: false,
-        message: `Please login as ${user.role}`
+        message: `Login as ${user.role}`
       });
     }
 
@@ -93,7 +92,11 @@ router.post("/login", async (req, res) => {
     const userData = user.toObject();
     delete userData.password;
 
-    res.json({ success: true, token, user: userData });
+    res.json({
+      success: true,
+      token,
+      user: userData
+    });
 
   } catch (err) {
     res.status(500).json({ success: false });
