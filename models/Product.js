@@ -5,27 +5,37 @@ const productSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+
   price: {
     type: Number,
     required: true
   },
+
   discountPrice: {
     type: Number
   },
+
   stock: {
     type: Number,
     default: 0
   },
-  description: {
-    type: String
+
+  description: String,
+
+  // 🔥 NEW
+  quantity: Number, // 400, 1
+  unit: {
+    type: String,
+    enum: ["g", "kg", "ml", "L"]
   },
+
   category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Category"
   },
-  image: {
-    type: String
-  }
+
+  image: String
+
 }, {
   timestamps: true
 });

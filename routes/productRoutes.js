@@ -22,7 +22,16 @@ const cleanBaseUrl = baseUrl.replace(/\/$/, "");
 // ================= ADD PRODUCT =================
 router.post("/add", auth, upload.single("image"), async (req, res) => {
   try {
-    const { name, price, discountPrice, stock, category, description } = req.body;
+    const {
+      name,
+      price,
+      discountPrice,
+      stock,
+      category,
+      description,
+      quantity,
+      unit
+    } = req.body;
 
     if (!name || !price || !category) {
       return res.json({ success: false, message: "All fields required" });
@@ -39,23 +48,24 @@ router.post("/add", auth, upload.single("image"), async (req, res) => {
       discountPrice: discountPrice ? Number(discountPrice) : null,
       stock: Number(stock),
       description,
+      quantity: Number(quantity),
+      unit,
       category,
       image: req.file ? req.file.filename : null
     });
 
     res.json({
       success: true,
-      message: "Product added",
       product: {
         ...product._doc,
-       image_url: product.image
-  ? `${cleanBaseUrl}/uploads/${product.image}`
-  : null
+        image_url: product.image
+          ? `${cleanBaseUrl}/uploads/${product.image}`
+          : null
       }
     });
 
   } catch (err) {
-    console.log("PRODUCT ADD ERROR:", err);
+    console.log(err);
     res.status(500).json({ success: false });
   }
 });
@@ -81,9 +91,14 @@ router.get("/", async (req, res) => {
       discountPrice: p.discountPrice,
       stock: p.stock,
       description: p.description,
+
+      // 🔥 NEW
+      quantity: p.quantity,
+      unit: p.unit,
+
       category: p.category?.name,
       image_url: p.image
-        ? `${baseUrl}/uploads/${p.image}`
+        ? `${cleanBaseUrl}/uploads/${p.image}`
         : null
     }));
 
@@ -93,11 +108,10 @@ router.get("/", async (req, res) => {
     });
 
   } catch (err) {
-    console.log("PRODUCT GET ERROR:", err);
+    console.log(err);
     res.status(500).json({ success: false });
   }
 });
-
 
 // ================= PRODUCT DETAILS =================
 router.get("/:id", async (req, res) => {
@@ -106,7 +120,7 @@ router.get("/:id", async (req, res) => {
       .populate("category", "name");
 
     if (!product) {
-      return res.json({ success: false, message: "Product not found" });
+      return res.json({ success: false, message: "Not found" });
     }
 
     res.json({
@@ -118,16 +132,19 @@ router.get("/:id", async (req, res) => {
         discountPrice: product.discountPrice,
         stock: product.stock,
         description: product.description,
+
+        // 🔥 NEW
+        quantity: product.quantity,
+        unit: product.unit,
+
         category: product.category?.name,
         image_url: product.image
-  ? `${cleanBaseUrl}/uploads/${product.image}`
-  : null,
-        createdAt: product.createdAt
+          ? `${cleanBaseUrl}/uploads/${product.image}`
+          : null
       }
     });
 
   } catch (err) {
-    console.log("PRODUCT DETAILS ERROR:", err);
     res.status(500).json({ success: false });
   }
 });
@@ -136,20 +153,21 @@ router.get("/:id", async (req, res) => {
 // ================= UPDATE PRODUCT =================
 router.put("/update/:id", auth, upload.single("image"), async (req, res) => {
   try {
-    const { name, price, discountPrice, stock, category, description } = req.body;
+    const {
+      name,
+      price,
+      discountPrice,
+      stock,
+      category,
+      description,
+      quantity,
+      unit
+    } = req.body;
 
     const product = await Product.findById(req.params.id);
 
     if (!product) {
-      return res.json({ success: false, message: "Product not found" });
-    }
-
-    if (category) {
-      const checkCategory = await Category.findById(category);
-      if (!checkCategory) {
-        return res.json({ success: false, message: "Invalid category" });
-      }
-      product.category = category;
+      return res.json({ success: false });
     }
 
     if (name) product.name = name;
@@ -157,6 +175,12 @@ router.put("/update/:id", auth, upload.single("image"), async (req, res) => {
     if (discountPrice) product.discountPrice = Number(discountPrice);
     if (stock) product.stock = Number(stock);
     if (description) product.description = description;
+
+    // 🔥 NEW
+    if (quantity) product.quantity = Number(quantity);
+    if (unit) product.unit = unit;
+
+    if (category) product.category = category;
 
     if (req.file) {
       product.image = req.file.filename;
@@ -166,17 +190,15 @@ router.put("/update/:id", auth, upload.single("image"), async (req, res) => {
 
     res.json({
       success: true,
-      message: "Product updated",
       product: {
         ...product._doc,
-       image_url: product.image
-  ? `${cleanBaseUrl}/uploads/${product.image}`
-  : null
+        image_url: product.image
+          ? `${cleanBaseUrl}/uploads/${product.image}`
+          : null
       }
     });
 
   } catch (err) {
-    console.log("PRODUCT UPDATE ERROR:", err);
     res.status(500).json({ success: false });
   }
 });

@@ -34,7 +34,7 @@ router.post("/signup", async (req, res) => {
       email,
       phone,
       password: hashedPassword,
-      role: role || "customer" // 🔥 direct role
+      role: role || "customer" 
     });
 
     const token = jwt.sign(
