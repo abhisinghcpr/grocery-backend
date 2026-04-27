@@ -1,5 +1,4 @@
 require("dotenv").config();
-
 const jwt = require("jsonwebtoken");
 
 const SECRET_KEY = process.env.JWT_SECRET;
@@ -8,7 +7,10 @@ module.exports = (req, res, next) => {
   let token = req.headers["authorization"];
 
   if (!token) {
-    return res.json({ success: false, message: "No token" });
+    return res.json({
+      success: false,
+      message: "No token"
+    });
   }
 
   if (token.startsWith("Bearer ")) {
@@ -17,9 +19,15 @@ module.exports = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
-   req.user = decoded;
+
+    req.user = decoded; // { id, role }
+
     next();
+
   } catch (err) {
-    res.json({ success: false, message: "Invalid token" });
+    return res.json({
+      success: false,
+      message: "Invalid token"
+    });
   }
 };
