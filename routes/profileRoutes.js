@@ -4,11 +4,8 @@ const User = require("../models/User");
 const auth = require("../middlewares/authMiddleware");
 
 const multer = require("multer");
-
-// 🔥 ADD THIS
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("../utils/cloudinary");
-
 
 // ================= CLOUDINARY STORAGE =================
 const storage = new CloudinaryStorage({
@@ -21,15 +18,16 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage });
 
-
-// ================= PROFILE VIEW =================
+// ================= GET PROFILE =================
 router.get("/profile", auth, async (req, res) => {
   try {
-
     const user = await User.findById(req.user.id);
 
     if (!user) {
-      return res.json({ success: false, message: "User not found" });
+      return res.json({
+        success: false,
+        message: "User not found"
+      });
     }
 
     res.json({
@@ -40,19 +38,26 @@ router.get("/profile", auth, async (req, res) => {
         email: user.email,
         phone: user.phone,
 
-        // 🔥 CHANGE HERE
-        image_url: user.image || null
+        // ✅ SAFE IMAGE (no uploads fallback)
+        image_url: user.image
+          ? user.image.startsWith("http")
+            ? user.image
+            : null
+          : null
       }
     });
 
   } catch (err) {
-    console.log("PROFILE ERROR FULL:", err);
-    res.status(500).json({ success: false });
+    console.log("PROFILE ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 });
 
 
-// ================= PROFILE UPDATE =================
+// ================= UPDATE PROFILE =================
 router.put("/profile", auth, upload.single("image"), async (req, res) => {
   try {
     const { name, phone } = req.body;
@@ -60,15 +65,19 @@ router.put("/profile", auth, upload.single("image"), async (req, res) => {
     const user = await User.findById(req.user.id);
 
     if (!user) {
-      return res.json({ success: false, message: "User not found" });
+      return res.json({
+        success: false,
+        message: "User not found"
+      });
     }
 
+    // update fields
     if (name) user.name = name;
     if (phone) user.phone = phone;
 
-    // 🔥 CHANGE HERE
+    // ✅ Cloudinary image update
     if (req.file) {
-      user.image = req.file.path; // cloudinary URL
+      user.image = req.file.path; // Cloudinary URL
     }
 
     await user.save();
@@ -76,14 +85,21 @@ router.put("/profile", auth, upload.single("image"), async (req, res) => {
     res.json({
       success: true,
       message: "Profile updated",
-
-      // 🔥 CHANGE HERE
-      image_url: user.image
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        image_url: user.image
+      }
     });
 
   } catch (err) {
-    console.log("UPDATE ERROR FULL:", err);
-    res.status(500).json({ success: false });
+    console.log("UPDATE ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 });
 

@@ -26,6 +26,15 @@ const upload = multer({ storage });
 // ================= ADD PRODUCT =================
 router.post("/add", auth, upload.single("image"), async (req, res) => {
   try {
+
+    // 🔥 👉 यहीं add करना है (सबसे ऊपर)
+    if (!req.file) {
+      return res.json({
+        success: false,
+        message: "Image required"
+      });
+    }
+
     const {
       name,
       price,
@@ -38,12 +47,18 @@ router.post("/add", auth, upload.single("image"), async (req, res) => {
     } = req.body;
 
     if (!name || !price || !category) {
-      return res.json({ success: false, message: "All fields required" });
+      return res.json({
+        success: false,
+        message: "All fields required"
+      });
     }
 
     const checkCategory = await Category.findById(category);
     if (!checkCategory) {
-      return res.json({ success: false, message: "Invalid category" });
+      return res.json({
+        success: false,
+        message: "Invalid category"
+      });
     }
 
     const product = await Product.create({
@@ -55,7 +70,9 @@ router.post("/add", auth, upload.single("image"), async (req, res) => {
       quantity: quantity ? Number(quantity) : 0,
       unit: unit || "g",
       category,
-      image: req.file ? req.file.path : null
+
+      // 🔥 image यहाँ आएगा
+      image: req.file.path
     });
 
     res.json({
