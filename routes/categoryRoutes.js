@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("../utils/cloudinary");
+
 const Category = require("../models/Category");
 const auth = require("../middlewares/authMiddleware");
 
@@ -29,7 +30,7 @@ router.post("/add", auth, upload.single("image"), async (req, res) => {
 
     const category = await Category.create({
       name,
-      image: req.file ? req.file.path : null // 🔥 Cloudinary URL
+      image: req.file ? req.file.path : null // ✔ Cloudinary URL
     });
 
     res.json({
@@ -43,7 +44,7 @@ router.post("/add", auth, upload.single("image"), async (req, res) => {
     });
 
   } catch (err) {
-    console.log("CATEGORY ADD ERROR:", err);
+    console.log(err);
     res.status(500).json({ success: false });
   }
 });
@@ -57,7 +58,7 @@ router.get("/", async (req, res) => {
     const data = categories.map(cat => ({
       _id: cat._id,
       name: cat.name,
-      image_url: cat.image // 🔥 direct cloudinary URL
+      image_url: cat.image // ✔ direct cloudinary URL
     }));
 
     res.json({
@@ -66,31 +67,24 @@ router.get("/", async (req, res) => {
     });
 
   } catch (err) {
-    console.log("CATEGORY FETCH ERROR:", err);
     res.status(500).json({ success: false });
   }
 });
 
 
-// ================= DELETE CATEGORY =================
+// ================= DELETE =================
 router.delete("/delete/:id", auth, async (req, res) => {
   try {
     const category = await Category.findById(req.params.id);
 
     if (!category) {
-      return res.json({
-        success: false,
-        message: "Category not found"
-      });
+      return res.json({ success: false });
     }
 
-    // 🔥 Cloudinary image delete (optional but best)
+    // 🔥 Cloudinary delete
     if (category.image) {
       const parts = category.image.split("/");
-      const publicId = parts
-        .slice(-2)
-        .join("/")
-        .split(".")[0];
+      const publicId = parts.slice(-2).join("/").split(".")[0];
 
       await cloudinary.uploader.destroy(publicId);
     }
@@ -99,14 +93,11 @@ router.delete("/delete/:id", auth, async (req, res) => {
 
     res.json({
       success: true,
-      message: "Category deleted successfully"
+      message: "Deleted"
     });
 
   } catch (err) {
-    console.log("CATEGORY DELETE ERROR:", err);
-    res.status(500).json({
-      success: false
-    });
+    res.status(500).json({ success: false });
   }
 });
 

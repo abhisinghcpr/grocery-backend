@@ -15,8 +15,9 @@ connectDB();
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/profile", require("./routes/profileRoutes"));
 
-// static
-app.use("/uploads", express.static("uploads"));
+// ❌ REMOVE THIS (IMPORTANT)
+// app.use("/uploads", express.static("uploads"));
+
 app.use("/api/category", require("./routes/categoryRoutes"));
 app.use("/api/product", require("./routes/productRoutes"));
 app.use("/api/cart", require("./routes/cartRoutes"));

@@ -98,7 +98,11 @@ router.get("/", async (req, res) => {
       unit: p.unit || "",
       size: `${p.quantity}${p.unit}`,
       category: p.category?.name,
-      image_url: p.image
+     image_url: p.image
+  ? p.image.startsWith("http")
+    ? p.image
+    : null
+  : null
     }));
 
     res.json({
@@ -154,6 +158,10 @@ router.get("/:id", async (req, res) => {
         size: `${product.quantity}${product.unit}`,
         category: product.category?.name,
         image_url: product.image
+  ? product.image.startsWith("http")
+    ? product.image
+    : null
+  : null
       }
     });
 
