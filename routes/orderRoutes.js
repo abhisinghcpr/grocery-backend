@@ -175,16 +175,6 @@ router.post("/place-cod", auth, async (req, res) => {
 });
 
 
-// ================= MY ORDERS =================
-router.get("/my-orders", auth, async (req, res) => {
-  const orders = await Order.find({ user: req.user.id })
-    .sort({ createdAt: -1 });
-
-  res.json({
-    success: true,
-    orders
-  });
-});
 // ================= MY ORDERS (ONGOING + COMPLETED) =================
 router.get("/my-orders", auth, async (req, res) => {
   try {
