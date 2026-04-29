@@ -193,11 +193,15 @@ router.get("/my-orders", auth, async (req, res) => {
       .sort({ createdAt: -1 });
 
 const data = orders.map(order => {
-  const firstItem = order.items[0]
+  const firstItem = order.items[0];
 
   let image = null;
 
-  if (firstItem && firstItem.product && typeof firstItem.product === "object") {
+  if (
+    firstItem &&
+    firstItem.product &&
+    typeof firstItem.product === "object"
+  ) {
     image = firstItem.product.image || null;
   }
 
