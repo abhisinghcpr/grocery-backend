@@ -189,44 +189,36 @@ router.get("/my-orders", auth, async (req, res) => {
 router.get("/my-orders", auth, async (req, res) => {
   try {
     const orders = await Order.find({ user: req.user.id })
-      .populate("items.product")
+      .populate("items.product") // 🔥 MOST IMPORTANT̥
       .sort({ createdAt: -1 });
 
-    const ongoing = [];
-    const completed = [];
+const data = orders.map(order => {
+  const firstItem = order.items[0]
 
-    orders.forEach(order => {
-      const itemCount = order.items.length;
+  let image = null;
 
-      // 👇 first product image
-      const firstItem = order.items[0];
-      const image = firstItem?.product?.image || "";
+  if (firstItem && firstItem.product && typeof firstItem.product === "object") {
+    image = firstItem.product.image || null;
+  }
 
-      const data = {
-        _id: order._id,
-        orderId: "ORD-" + order._id.toString().slice(-6),
-        items: itemCount,
-        amount: order.totalAmount,
-        status: order.orderStatus,
-        createdAt: order.createdAt,
-        image: image
-      };
-
-      if (order.orderStatus === "Delivered") {
-        completed.push(data);
-      } else {
-        ongoing.push(data);
-      }
-    });
+  return {
+    _id: order._id,
+    orderId: "ORD-" + order._id.toString().slice(-6),
+    items: order.items.length,
+    amount: order.totalAmount,
+    status: order.orderStatus,
+    createdAt: order.createdAt,
+    image: image
+  };
+});
 
     res.json({
       success: true,
-      ongoing,
-      completed
+      orders: data
     });
 
   } catch (err) {
-    console.log("MY ORDERS ERROR:", err);
+    console.log(err);
     res.status(500).json({ success: false });
   }
 });
