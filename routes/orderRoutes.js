@@ -23,6 +23,9 @@ router.post("/create-payment", auth, async (req, res) => {
     let total = 0;
 
     cart.items.forEach(item => {
+      // 🔥 SAFE CHECK
+      if (!item.product) return;
+
       const price = item.product.discountPrice || item.product.price;
       total += price * item.quantity;
     });
@@ -43,8 +46,12 @@ router.post("/create-payment", auth, async (req, res) => {
     });
 
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ success: false });
+    console.log("CREATE PAYMENT ERROR:", err.message);
+
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 });
 
