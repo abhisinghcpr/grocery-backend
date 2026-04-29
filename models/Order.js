@@ -29,10 +29,11 @@ const orderSchema = new mongoose.Schema({
     default: "Pending"
   },
 
-  orderStatus: {
-    type: String,
-    default: "Placed"
-  },
+ orderStatus: {
+  type: String,
+  enum: ["Placed", "Processing", "Out for Delivery", "Delivered"],
+  default: "Placed"
+}
 
   totalAmount: Number
 

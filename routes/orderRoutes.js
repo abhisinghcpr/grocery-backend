@@ -185,5 +185,69 @@ router.get("/my-orders", auth, async (req, res) => {
     orders
   });
 });
+// ================= MY ORDERS (ONGOING + COMPLETED) =================
+router.get("/my-orders", auth, async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.user.id })
+      .populate("items.product")
+      .sort({ createdAt: -1 });
 
+    const ongoing = [];
+    const completed = [];
+
+    orders.forEach(order => {
+      const itemCount = order.items.length;
+
+      // 👇 first product image
+      const firstItem = order.items[0];
+      const image = firstItem?.product?.image || "";
+
+      const data = {
+        _id: order._id,
+        orderId: "ORD-" + order._id.toString().slice(-6),
+        items: itemCount,
+        amount: order.totalAmount,
+        status: order.orderStatus,
+        createdAt: order.createdAt,
+        image: image
+      };
+
+      if (order.orderStatus === "Delivered") {
+        completed.push(data);
+      } else {
+        ongoing.push(data);
+      }
+    });
+
+    res.json({
+      success: true,
+      ongoing,
+      completed
+    });
+
+  } catch (err) {
+    console.log("MY ORDERS ERROR:", err);
+    res.status(500).json({ success: false });
+  }
+});
+// ================= UPDATE ORDER STATUS =================
+router.put("/update-status/:id", async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { orderStatus: status },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      order
+    });
+
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
 module.exports = router;
