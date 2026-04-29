@@ -5,6 +5,7 @@ const orderSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User"
   },
+
   items: [
     {
       product: {
@@ -15,13 +16,26 @@ const orderSchema = new mongoose.Schema({
       price: Number
     }
   ],
-  totalAmount: Number,
-  address: String,
-  paymentMethod: String,
-  status: {
+
+  address: Object,
+
+  paymentMethod: {
+    type: String,
+    enum: ["COD", "ONLINE"]
+  },
+
+  paymentStatus: {
+    type: String,
+    default: "Pending"
+  },
+
+  orderStatus: {
     type: String,
     default: "Placed"
-  }
+  },
+
+  totalAmount: Number
+
 }, { timestamps: true });
 
 module.exports = mongoose.model("Order", orderSchema);

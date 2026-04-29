@@ -1,24 +1,18 @@
 const express = require("express");
 const router = express.Router();
+
+const crypto = require("crypto");
+
+const razorpay = require("../utils/razorpay");
 const Order = require("../models/Order");
 const Cart = require("../models/Cart");
 const Address = require("../models/Address");
 const auth = require("../middlewares/authMiddleware");
 
-// PLACE ORDER
-router.post("/place", auth, async (req, res) => {
+
+// ================= CREATE PAYMENT =================
+router.post("/create-payment", auth, async (req, res) => {
   try {
-    const { paymentMethod } = req.body;
-
-    const addressData = await Address.findOne({
-      user: req.user.id,
-      isSelected: true
-    });
-
-    if (!addressData) {
-      return res.json({ success: false, message: "Select address first" });
-    }
-
     const cart = await Cart.findOne({ user: req.user.id })
       .populate("items.product");
 
@@ -26,36 +20,26 @@ router.post("/place", auth, async (req, res) => {
       return res.json({ success: false, message: "Cart empty" });
     }
 
-    let totalAmount = 0;
+    let total = 0;
 
-    const items = cart.items.map(item => {
-      const p = item.product;
-      const price = p.discountPrice || p.price;
-
-      totalAmount += price * item.quantity;
-
-      return {
-        product: p._id,
-        quantity: item.quantity,
-        price
-      };
+    cart.items.forEach(item => {
+      const price = item.product.discountPrice || item.product.price;
+      total += price * item.quantity;
     });
 
-    const order = await Order.create({
-      user: req.user.id,
-      items,
-      totalAmount,
-      address: addressData.address,
-      paymentMethod
-    });
+    const deliveryFee = total > 200 ? 0 : 20;
+    const finalAmount = total + deliveryFee;
 
-    // cart clear
-    await Cart.findOneAndDelete({ user: req.user.id });
+    const order = await razorpay.orders.create({
+      amount: finalAmount * 100,
+      currency: "INR",
+      receipt: "order_" + Date.now()
+    });
 
     res.json({
       success: true,
-      orderId: order._id,
-      totalAmount
+      order,
+      amount: finalAmount
     });
 
   } catch (err) {
@@ -65,20 +49,134 @@ router.post("/place", auth, async (req, res) => {
 });
 
 
-// GET MY ORDERS
-router.get("/", auth, async (req, res) => {
-  const orders = await Order.find({ user: req.user.id });
+// ================= VERIFY PAYMENT =================
+router.post("/verify-payment", auth, async (req, res) => {
+  try {
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      addressId
+    } = req.body;
 
-  res.json({ success: true, orders });
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+
+    const expected = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body)
+      .digest("hex");
+
+    if (expected !== razorpay_signature) {
+      return res.json({
+        success: false,
+        message: "Payment failed"
+      });
+    }
+
+    // ✅ Payment success → order save
+
+    const cart = await Cart.findOne({ user: req.user.id })
+      .populate("items.product");
+
+    const address = await Address.findById(addressId);
+
+    let total = 0;
+
+    const items = cart.items.map(item => {
+      const price = item.product.discountPrice || item.product.price;
+      total += price * item.quantity;
+
+      return {
+        product: item.product._id,
+        quantity: item.quantity,
+        price
+      };
+    });
+
+    const deliveryFee = total > 200 ? 0 : 20;
+    const finalTotal = total + deliveryFee;
+
+    const order = await Order.create({
+      user: req.user.id,
+      items,
+      address,
+      paymentMethod: "ONLINE",
+      paymentStatus: "Paid",
+      totalAmount: finalTotal
+    });
+
+    await Cart.findOneAndDelete({ user: req.user.id });
+
+    res.json({
+      success: true,
+      message: "Order placed",
+      orderId: order._id
+    });
+
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
 });
 
 
-// ORDER DETAILS
-router.get("/:id", auth, async (req, res) => {
-  const order = await Order.findById(req.params.id)
-    .populate("items.product");
+// ================= COD ORDER =================
+router.post("/place-cod", auth, async (req, res) => {
+  try {
+    const { addressId } = req.body;
 
-  res.json({ success: true, order });
+    const cart = await Cart.findOne({ user: req.user.id })
+      .populate("items.product");
+
+    const address = await Address.findById(addressId);
+
+    let total = 0;
+
+    const items = cart.items.map(item => {
+      const price = item.product.discountPrice || item.product.price;
+      total += price * item.quantity;
+
+      return {
+        product: item.product._id,
+        quantity: item.quantity,
+        price
+      };
+    });
+
+    const deliveryFee = total > 200 ? 0 : 20;
+    const finalTotal = total + deliveryFee;
+
+    const order = await Order.create({
+      user: req.user.id,
+      items,
+      address,
+      paymentMethod: "COD",
+      paymentStatus: "Pending",
+      totalAmount: finalTotal
+    });
+
+    await Cart.findOneAndDelete({ user: req.user.id });
+
+    res.json({
+      success: true,
+      message: "Order placed",
+      orderId: order._id
+    });
+
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
+
+// ================= MY ORDERS =================
+router.get("/my-orders", auth, async (req, res) => {
+  const orders = await Order.find({ user: req.user.id })
+    .sort({ createdAt: -1 });
+
+  res.json({
+    success: true,
+    orders
+  });
 });
 
 module.exports = router;
