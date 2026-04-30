@@ -24,6 +24,7 @@ app.use("/api/cart", require("./routes/cartRoutes"));
 app.use("/api/address", require("./routes/addressRoutes"));
 app.use("/api/order", require("./routes/orderRoutes"));
 app.use("/api/banner", require("./routes/bannerRoutes"));
+app.use("/api/wishlist", require("./routes/wishlistRoutes"));
 
 app.get("/", (req, res) => {
   res.send("API Running...");

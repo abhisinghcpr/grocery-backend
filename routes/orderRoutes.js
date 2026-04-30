@@ -179,7 +179,7 @@ router.post("/place-cod", auth, async (req, res) => {
 router.get("/my-orders", auth, async (req, res) => {
   try {
     const orders = await Order.find({ user: req.user.id })
-      .populate("items.product") // 🔥 IMPORTANT
+      .populate("items.product") 
       .sort({ createdAt: -1 });
 
     const data = orders.map(order => {
