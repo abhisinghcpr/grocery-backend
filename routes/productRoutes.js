@@ -258,4 +258,49 @@ router.delete("/delete/:id", auth, async (req, res) => {
   }
 });
 
+
+router.get("/search", async (req, res) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || q.trim() === "") {
+      return res.json({ success: true, products: [] });
+    }
+
+    // 🔥 category search
+    const categories = await Category.find({
+      name: { $regex: q, $options: "i" }
+    });
+
+    const categoryIds = categories.map(c => c._id);
+
+    const products = await Product.find({
+      $or: [
+        { name: { $regex: q, $options: "i" } },
+        { description: { $regex: q, $options: "i" } },
+        { category: { $in: categoryIds } }
+      ]
+    })
+    .populate("category", "name")
+    .limit(20);
+
+    const data = products.map(p => ({
+      _id: p._id,
+      name: p.name,
+      price: p.price,
+      discountPrice: p.discountPrice,
+      image: p.image,
+      category: p.category?.name || ""
+    }));
+
+    res.json({
+      success: true,
+      products: data
+    });
+
+  } catch (err) {
+    console.log("SEARCH ERROR:", err);
+    res.status(500).json({ success: false });
+  }
+});
 module.exports = router;
