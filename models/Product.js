@@ -22,7 +22,6 @@ const productSchema = new mongoose.Schema({
 
   description: String,
 
-  // 🔥 NEW
   quantity: {
     type: Number,
     default: 0
@@ -38,11 +37,14 @@ const productSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Category"
   },
-
+  
   image: String
 
 }, {
   timestamps: true
 });
+
+productSchema.index({ name: "text", description: "text" });
+
 
 module.exports = mongoose.model("Product", productSchema);
