@@ -205,7 +205,7 @@ router.put("/orders/status/:id", auth, async (req, res) => {
   "Pending",
   "Packed",
   "Delivered"
-];
+]
 
     if (!allowed.includes(status)) {
       return res.json({
