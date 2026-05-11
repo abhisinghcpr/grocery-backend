@@ -201,12 +201,11 @@ router.put("/orders/status/:id", auth, async (req, res) => {
 
     const { status } = req.body;
 
-    const allowed = [
-      "Placed",
-      "Processing",
-      "Out for Delivery",
-      "Delivered"
-    ];
+  const allowed = [
+  "Pending",
+  "Packed",
+  "Delivered"
+];
 
     if (!allowed.includes(status)) {
       return res.json({
