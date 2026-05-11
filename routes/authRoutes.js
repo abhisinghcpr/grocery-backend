@@ -8,9 +8,19 @@ const SECRET_KEY = process.env.JWT_SECRET;
 
 
 // ================= SIGNUP =================
+// ================= SIGNUP =================
 router.post("/signup", async (req, res) => {
   try {
-    const { name, email, phone, password, role } = req.body;
+
+    const {
+      name,
+      email,
+      phone,
+      password,
+      role,
+      storeName,
+      storeAddress
+    } = req.body;
 
     if (!name || !email || !password) {
       return res.json({
@@ -19,7 +29,19 @@ router.post("/signup", async (req, res) => {
       });
     }
 
+    // 🔥 Seller validation
+    if (role === "seller") {
+
+      if (!storeName || !storeAddress) {
+        return res.json({
+          success: false,
+          message: "Store name and address required"
+        });
+      }
+    }
+
     const exists = await User.findOne({ email });
+
     if (exists) {
       return res.json({
         success: false,
@@ -34,16 +56,26 @@ router.post("/signup", async (req, res) => {
       email,
       phone,
       password: hashedPassword,
-      role: role || "customer" 
+      role: role || "customer",
+
+      // 🔥 only seller
+      storeName: role === "seller" ? storeName : null,
+      storeAddress: role === "seller" ? storeAddress : null
     });
 
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      {
+        id: user._id,
+        role: user.role
+      },
       SECRET_KEY,
-      { expiresIn: "7d" }
+      {
+        expiresIn: "7d"
+      }
     );
 
     const userData = user.toObject();
+
     delete userData.password;
 
     res.json({
@@ -53,7 +85,12 @@ router.post("/signup", async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({ success: false });
+
+    console.log(err);
+
+    res.status(500).json({
+      success: false
+    });
   }
 });
 
