@@ -79,4 +79,167 @@ router.get("/dashboard", auth, async (req, res) => {
   }
 });
 
+
+// ================= SELLER ALL ORDERS =================
+router.get("/orders", auth, async (req, res) => {
+
+  try {
+
+    // 🔥 seller only
+    if (req.user.role !== "seller") {
+      return res.json({
+        success: false,
+        message: "Only seller allowed"
+      });
+    }
+
+    const {
+      status,
+      search
+    } = req.query;
+
+    let query = {};
+
+    // ================= STATUS FILTER =================
+    if (status && status !== "All") {
+      query.orderStatus = status;
+    }
+
+    let orders = await Order.find(query)
+      .populate("user", "name")
+      .populate("items.product")
+      .sort({ createdAt: -1 });
+
+    // ================= SEARCH =================
+    if (search) {
+
+      orders = orders.filter(order => {
+
+        const customerName =
+          order.user?.name?.toLowerCase() || "";
+
+        const orderId =
+          order._id.toString().toLowerCase();
+
+        return (
+          customerName.includes(search.toLowerCase()) ||
+          orderId.includes(search.toLowerCase())
+        );
+      });
+    }
+
+    const data = orders.map(order => {
+
+      return {
+
+        _id: order._id,
+
+        orderId:
+          "#ORD-" +
+          order._id.toString().slice(-4),
+
+        customerName:
+          order.user?.name || "",
+
+        status:
+          order.orderStatus,
+
+        totalAmount:
+          order.totalAmount,
+
+        createdAt:
+          order.createdAt,
+
+        address:
+          order.address?.address || "",
+
+        items: order.items.map(item => ({
+
+          productId:
+            item.product?._id,
+
+          name:
+            item.product?.name || "",
+
+          quantity:
+            item.quantity,
+
+          size:
+            `${item.product?.quantity || 0}${item.product?.unit || ""}`
+
+        }))
+      };
+    });
+
+    res.json({
+      success: true,
+      orders: data
+    });
+
+  } catch (err) {
+
+    console.log("SELLER ORDER ERROR:", err);
+
+    res.status(500).json({
+      success: false
+    });
+  }
+});
+
+
+// ================= UPDATE STATUS =================
+router.put("/orders/status/:id", auth, async (req, res) => {
+
+  try {
+
+    if (req.user.role !== "seller") {
+      return res.json({
+        success: false,
+        message: "Only seller allowed"
+      });
+    }
+
+    const { status } = req.body;
+
+    const allowed = [
+      "Placed",
+      "Processing",
+      "Out for Delivery",
+      "Delivered"
+    ];
+
+    if (!allowed.includes(status)) {
+      return res.json({
+        success: false,
+        message: "Invalid status"
+      });
+    }
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      {
+        orderStatus: status
+      },
+      {
+        new: true
+      }
+    );
+
+    res.json({
+      success: true,
+      message: "Status updated",
+      order
+    });
+
+  } catch (err) {
+
+    console.log("STATUS UPDATE ERROR:", err);
+
+    res.status(500).json({
+      success: false
+    });
+  }
+});
+
+
 module.exports = router;
